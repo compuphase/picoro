@@ -6,7 +6,7 @@ His description of how it works is on his blog: [Coroutines in less than 20 line
 This fork exists mostly to add some documentation.
 
 ## Usage
-```
+```C
 void *fun(void *arg)
 {
   printf("wim - %s\n",(char*)arg);
@@ -62,4 +62,6 @@ completed
 5. When a coroutine runs to completion, its return value is also passed as the return value of `resume()` (as if it were the final "yield", so to speak).
 6. Function `yield()` passes execution back to the thread that created the coroutine. Calling `yield()` when no coroutine has been set up, is ok (it simply does not yield). However, calling `resume()` on a coroutine that has already run to completion causes an assert. The caller should check that a coroutine is *resumable* before resuming it.
 
-In case you are wondering about the test words "aap", "noot", "mies", etc. instead of the more ubiquitous "foo", "bar" & "baz", do an internet search for "leesplankje". Yes, that is how I learned to read.
+When you start create coroutine, its stack starts below a spacer on the main stack. That means that the main thread's stack can grow for the size of the spacer before colliding with the coroutine's stack. The default size of this spacer is 16 KiB; it can be adjusted with constant `COROUTINE_STACK` that is defined near the top of `picoro.c`.
+
+In case you are wondering about the test words "aap", "noot", "mies", etc. in the example, instead of the more ubiquitous "foo", "bar" & "baz", do an internet search for "leesplankje". Yes, that is how I learned to read.
