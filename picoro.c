@@ -10,10 +10,17 @@
 
 #include "picoro.h"
 
+#if defined __GNUC__
+  #pragma GCC push_options
+  #pragma GCC optimize ("O0")
+#endif
+#define COROUTINE_STACK	16	/* in KiB */
+
+
 /*
  * Each coroutine has a jmp_buf to hold its context when suspended.
  *
- * There are lists of running and idle coroutines.
+ * There are two lists: for running and for idle coroutines.
  *
  * The coroutine at the head of the running list has the CPU, and all
  * others are suspended inside resume(). The "first" coro object holds
@@ -39,7 +46,7 @@ int resumable(coro c) {
 }
 
 /*
- * Add a coroutine to a list and return the previous head of the list.
+ * Add a coroutine to the head of a list and return the previous head of the list.
  */
 static void push(coro *list, coro c) {
 	c->next = *list;
@@ -75,8 +82,12 @@ void *resume(coro c, void *arg) {
 	return(pass(c->next, arg));
 }
 
+/*
+ * Yield to the next resumable coroutine, but return NULL immediately if
+ * there is no (more) coroutine active.
+ */
 void *yield(void *arg) {
-	return(pass(pop(&running), arg));
+	return(running->next != NULL) ? (pass(pop(&running), arg)) : NULL;
 }
 
 /* Declare for mutual recursion. */
@@ -90,7 +101,7 @@ void coroutine_start(void), coroutine_main(void*);
  * idle. When there are idle coroutines, we pass one the function
  * pointer and return the activated coroutine's address.
  */
-coro coroutine(void *fun(void *arg)) {
+coro coroutine(coro_proc fun) {
 	if(idle == NULL && !setjmp(running->state))
 		coroutine_start();
 	return(resume(pop(&idle), fun));
@@ -149,8 +160,10 @@ void coroutine_main(void *ret) {
  * initial stack frame for the next coroutine.
  */
 void coroutine_start(void) {
-	char stack[16 * 1024];
+	char stack[COROUTINE_STACK * 1024];
 	coroutine_main(stack);
 }
 
-/* eof */
+#if defined __GNUC__
+  #pragma GCC pop_options
+#endif

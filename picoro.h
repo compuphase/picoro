@@ -10,30 +10,36 @@
 #define PICORO_H
 
 typedef struct coro *coro;
+typedef void *(*coro_proc)(void *arg);
 
-/*
+/** coro coroutine(coro_proc fun)
  * Create a coroutine that will run fun(). The coroutine starts off suspended.
- * When it is first resumed, the argument to resume() is passed to fun().
+ * When it is first resumed, the argument to resume() is passed to fun(). After
+ * the coroutine starts running, it runs until it returns or yields.
+ *
  * If fun() returns, its return value is returned by resume() as if the
  * coroutine yielded, except that the coroutine is then no longer resumable
  * and may be discarded.
+ *
+ * If fun() yields, the argument to yield() is returned by the resume() call
+ * that started execution of the coroutine.
  */
-coro coroutine(void *fun(void *arg));
+coro coroutine(coro_proc fun);
 
-/*
- * Returns false when the coroutine has run to completion
- * or when it is blocked inside resume().
+/** int resumable(coro c)
+ * Returns false when the coroutine has run to completion, or when it is blocked
+ * inside resume(), meaning that another coroutine is running at that moment.
  */
 int resumable(coro c);
 
-/*
+/** void *resume(coro c, void *arg)
  * Transfer control to another coroutine. The second argument is returned by
  * yield() inside the target coroutine (except for the first time resume() is
  * called). A coroutine that is blocked inside resume() is not resumable.
  */
 void *resume(coro c, void *arg);
 
-/*
+/** void *yield(void *arg)
  * Transfer control back to the coroutine that resumed this one. The argument
  * is returned by resume() in the destination coroutine. A coroutine that is
  * blocked inside yield() may be resumed by any other coroutine.
