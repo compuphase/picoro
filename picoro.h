@@ -9,6 +9,8 @@
 #ifndef PICORO_H
 #define PICORO_H
 
+#include <stdbool.h>
+
 typedef struct coro *coro;
 typedef void *(*coro_proc)(void *arg);
 
@@ -30,7 +32,7 @@ coro coroutine(coro_proc fun);
  * Returns false when the coroutine has run to completion, or when it is blocked
  * inside resume(), meaning that another coroutine is running at that moment.
  */
-int resumable(coro c);
+bool resumable(coro c);
 
 /** void *resume(coro c, void *arg)
  * Transfer control to another coroutine. The second argument is returned by

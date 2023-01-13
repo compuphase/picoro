@@ -41,7 +41,7 @@ static struct coro {
  * A coroutine can be passed to resume() if
  * it is not on the running or idle lists.
  */
-int resumable(coro c) {
+bool resumable(coro c) {
 	return(c != NULL && c->next == NULL);
 }
 
@@ -90,8 +90,11 @@ void *yield(void *arg) {
 	return(running->next != NULL) ? (pass(pop(&running), arg)) : NULL;
 }
 
-/* Declare for mutual recursion. */
-void coroutine_start(void), coroutine_main(void*);
+/*
+ * Forward declare, because coroutine_start() and coroutine_main() are
+ * mutually recursive.
+ */
+void coroutine_start(void);
 
 /*
  * The coroutine constructor function.
@@ -110,7 +113,7 @@ coro coroutine(coro_proc fun) {
 /*
  * The main loop for a coroutine is responsible for managing the "idle" list.
  *
- * When we start the idle list is empty, so we put ourself on it to
+ * When we start, the idle list is empty. So we put ourself on it to
  * ensure it remains non-NULL. Then we immediately suspend ourself
  * waiting for the first function we are to run. (The head of the
  * running list is the coroutine that forked us.) We pass the stack
@@ -142,9 +145,9 @@ coro coroutine(coro_proc fun) {
  * allowed by ANSI C but we do it anyway.
  */
 void coroutine_main(void *ret) {
-	void *(*fun)(void *arg);
 	struct coro me;
 	push(&idle, &me);
+	void *(*fun)(void *arg);
 	fun = pass(&me, ret);
 	if(!setjmp(running->state))
 		coroutine_start();
@@ -161,7 +164,8 @@ void coroutine_main(void *ret) {
  */
 void coroutine_start(void) {
 	char stack[COROUTINE_STACK * 1024];
-	coroutine_main(stack);
+	coroutine_main(stack); /* Parameter "stack" is passed merely to prevent it
+							  from being optimised away; see comment above. */
 }
 
 #if defined __GNUC__
